@@ -1,0 +1,50 @@
+---
+# RDS database can be shutdown only for 7 days.
+# This automation doument ensures it stays in shutdown state
+
+Parameters:
+  RDSId:
+    Type: String
+    Description: RDS database identifier
+Resources:
+  AutomationDocumentAsumeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ssm.amazonaws.com
+            Action:
+              - sts:AssumeRole
+  AutomationDocumentRDSPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: AutomationDocumentRDSPolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - rds:DescribeDBInstances
+              - rds:StopDBInstance
+            Resource: "*"
+      Roles:
+        - !Ref AutomationDocumentAsumeRole
+
+  StateManagerRDSAssociation:
+    DependsOn:
+      - AutomationDocumentAsumeRole
+      - AutomationDocumentRDSPolicy
+    Type: AWS::SSM::Association
+    Properties:
+      Name: AWS-StopRdsInstance
+      Parameters:
+        InstanceId:
+          - !Sub ${RDSId}
+        AutomationAssumeRole:
+          - !GetAtt AutomationDocumentAsumeRole.Arn
+      ScheduleExpression: rate(1 day)
+
