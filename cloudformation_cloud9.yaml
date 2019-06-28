@@ -1,0 +1,8 @@
+Resources:
+  Cloud9:
+    Type: AWS::Cloud9::EnvironmentEC2
+    Properties: 
+      AutomaticStopTimeMinutes: 60
+      Description: Titel
+      InstanceType: t2.micro
+      Name: Hladnjaca
