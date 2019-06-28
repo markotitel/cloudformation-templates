@@ -14,11 +14,11 @@ Resources:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
+            Action:
+              - sts:AssumeRole
             Principal:
               Service:
                 - ssm.amazonaws.com
-            Action:
-              - sts:AssumeRole
   AutomationDocumentRDSPolicy:
     Type: AWS::IAM::Policy
     Properties:
@@ -40,6 +40,7 @@ Resources:
       - AutomationDocumentRDSPolicy
     Type: AWS::SSM::Association
     Properties:
+      AssociationName: EnsureRDSIsStopped
       Name: AWS-StopRdsInstance
       Parameters:
         InstanceId:
