@@ -1,0 +1,74 @@
+Resources:
+
+  LambdaSESRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AmazonSESFullAccess
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+
+  SesNotificationsDisableSendLambda:
+    Type: "AWS::SNS::Topic"
+  SesNotificationsDisableSendEmailSubscription:
+    Type: "AWS::SNS::Subscription"
+    Properties:
+      TopicArn: !Ref SesNotificationsDisableSendLambda
+      Protocol: "email"
+      Endpoint: 'alarm@email'
+  SesNotificationsDisableSendLambdaSubscription:
+    Type: "AWS::SNS::Subscription"
+    Properties:
+      Protocol: "lambda"
+      Endpoint: !GetAtt SesDisableSendLambda.Arn
+      TopicArn: !Ref SesNotificationsDisableSendLambda
+  LambdaDisableSesInvokePermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Ref SesDisableSendLambda
+      Principal: "sns.amazonaws.com"
+      SourceArn: !Ref SesNotificationsDisableSendLambda
+
+  SESBounceReputationAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      ActionsEnabled: true
+      Namespace: AWS/SES
+      Statistic: Average
+      AlarmDescription: SES reputation alarm
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      DatapointsToAlarm: 1
+      EvaluationPeriods: 1
+      Period: 300
+      MetricName: Reputation.BounceRate
+      Threshold: 0.05
+      TreatMissingData: ignore
+      AlarmActions:
+        - !Ref SesNotificationsDisableSendLambda
+
+  SesDisableSendLambda:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Handler: "index.lambda_handler"
+      Runtime: "python2.7"
+      Timeout: 10
+      Role: !GetAtt LambdaSESRole.Arn
+      Code:
+        ZipFile: !Sub |-
+          from __future__ import print_function
+          import json, boto3
+          
+          client = boto3.client('ses')
+          
+          def lambda_handler(event, context):
+              response = client.update_account_sending_enabled(Enabled=False)
+              print(response)
