@@ -1,3 +1,7 @@
+Parameters:
+  NotificationToEmail:
+    Type: String
+
 Resources:
 
   LambdaSESRole:
@@ -23,7 +27,7 @@ Resources:
     Properties:
       TopicArn: !Ref SesNotificationsDisableSendLambda
       Protocol: "email"
-      Endpoint: 'alarm@email'
+      Endpoint: !Ref NotificationToEmail
   SesNotificationsDisableSendLambdaSubscription:
     Type: "AWS::SNS::Subscription"
     Properties:
