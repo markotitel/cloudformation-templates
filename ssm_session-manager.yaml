@@ -1,0 +1,50 @@
+Resources:
+  IAMGroupEC2SSH:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: EC2SSHAccess
+
+  EC2SSHPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      Groups:
+        - !Ref IAMGroupEC2SSH
+      PolicyName: EC2SSHPolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - "ec2:DescribeInstances"
+              - "ssm:DescribeSessions"
+              - "ssm:DescribeInstanceProperties"
+              - "ssm:GetConnectionStatus"
+              - "ssm:StartSession"
+            Resource: "*"
+
+  InstanceProfileIAM:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref InstanceProfileRole
+  InstanceProfileRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+
+  IAMUserEC2SSH:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: ec2ssh
+      Groups:
+        - !Ref IAMGroupEC2SSH
